@@ -1,0 +1,32 @@
+{
+  "name": "t",
+  "version": "0.0.0",
+  "description": "an url shortener based on levelDB targeting intranets",
+  "main": "index.js",
+  "scripts": {
+    "start": "node .",
+    "test": "node_modules/mocha/bin/mocha"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thomaspeklak/t.git"
+  },
+  "keywords": [
+    "url",
+    "shortener"
+  ],
+  "author": "Thomas Peklak <thomas.peklak@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/thomaspeklak/express-resizer/issues"
+  },
+  "dependencies": {
+    "levelup": "~0.12.0",
+    "q": "~0.9.6",
+    "leveldown": "~0.6.2"
+  },
+  "devDependencies": {
+    "chai": "~1.7.2",
+    "mocha": "~1.12.0"
+  }
+}
