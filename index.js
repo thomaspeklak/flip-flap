@@ -47,6 +47,23 @@ function renderUrl(key) {
     return "http://" + (process.argv[3] ||  "localhost") + "/" + key;
 }
 
+function internalServerError(res) {
+    res.statusCode = 500;
+    res.end("Internal Server Error");
+}
+
+function notFound(res) {
+    res.statusCode = 404;
+    res.end("Not Found");
+}
+
+function redirectTo(res, url) {
+    res.writeHead(301, {
+        'Location': url
+    });
+    res.end();
+}
+
 function server(existingKeys) {
     return http.createServer(function (req, res) {
         if (req.method == "POST") {
@@ -55,7 +72,7 @@ function server(existingKeys) {
                 body += data.toString();
             }).on("end", function () {
                 db.get(body, function (err, data) {
-                    if(err && err.name == 'NotFoundError') {
+                    if (err && err.name == 'NotFoundError') {
                         var key = existingKeys.pop();
                         db.batch([{
                             type: "put",
@@ -75,13 +92,12 @@ function server(existingKeys) {
                         return;
                     }
 
-                    if(err) {
-                       console.error(err);
-                       res.statusCode = 500;
-                       return res.end("Internal Server Error");
+                    if (err) {
+                        console.error(err);
+                        return internalServerError(res);
                     }
 
-                    if(data) {
+                    if (data) {
                         return res.end(renderUrl(data));
                     }
 
@@ -95,6 +111,19 @@ function server(existingKeys) {
             return fs.createReadStream("./index.html").pipe(res);
         }
 
+        var key = req.url.split("/")[1];
+        db.get(key, function (err, data) {
+            if (err) {
+                if (err.name == "NotFoundError") {
+                    return notFound(res);
+                }
+
+                console.error(err);
+                return internalServerError(res);
+            }
+
+            redirectTo(res, data);
+        });
     });
 }
 
