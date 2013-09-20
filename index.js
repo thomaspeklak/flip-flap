@@ -1,8 +1,8 @@
 "use strict";
 
 var http = require("http");
-var levelup = require('levelup');
-var db = levelup('./mydb');
+var levelup = require("levelup");
+var db = levelup("./mydb");
 var fs = require("fs");
 var keyRange = require("./key-range");
 
@@ -31,43 +31,51 @@ db.createKeyStream({
     end: "zz",
     limit: 1
 })
-    .on('data', function (key) {
+    .on("data", function (key) {
         startUp(prefixOf(key));
     })
-    .on('end', function (data) {
+    .on("end", function () {
         if (!prefix) {
             startUp("");
-        };
+        }
     })
     .on("error", function (err) {
         throw err;
     });
 
-var startUp = function (prefix) {
+function server(existingKeys) {
+    return http.createServer(function (req, res) {
+        if (req.method == "POST") {
+            var body = "";
+            req.on("data", function (data) {
+                body += data.toString();
+            })
+                .on("end", function () {
+                    var key = existingKeys.pop();
+                    db.put(key, body, function (err) {
+                        if (err) {
+                            console.dir(err);
+                        }
+                        res.end("http://" + (process.argv[3] ||  "localhost") + "/" + key);
+                    });
+                });
+            return;
+        }
+
+        if (req.url == "/") {
+            res.writeHead("Content-type", "text/html");
+            return fs.createReadStream("./index.html").pipe(res);
+        }
+
+    });
+}
+
+function startUp(prefix) {
     getExistingKeys(prefix, function (keys) {
         var existingKeys = keyRange(prefix, keys);
-        existingKeys.sort(function () { return Math.random() - .5; });
-        http.createServer(function (req, res) {
-            if (req.method == "POST") {
-                var body = "";
-                req.on("data", function (data) {body += data.toString()})
-                    .on("end", function () {
-                        var key = existingKeys.pop();
-                        db.put(key, body, function (err) {
-                            if (err) {
-                                console.dir(err);
-                            }
-                            res.end("http://" + (process.argv[3] || "localhost") + "/" + key);
-                        });
-                    });
-                return;
-            }
-
-            if (req.url == '/') {
-                res.writeHead("Content-type", "text/html");
-                return fs.createReadStream('./index.html').pipe(res);
-            }
-
-        }).listen(process.argv[2] || 3000);
+        existingKeys.sort(function () {
+            return Math.random() - 0.5;
+        });
+        server(existingKeys).listen(process.argv[2] || 3000);
     });
-};
+}
