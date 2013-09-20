@@ -43,22 +43,50 @@ db.createKeyStream({
         throw err;
     });
 
+function renderUrl(key) {
+    return "http://" + (process.argv[3] ||  "localhost") + "/" + key;
+}
+
 function server(existingKeys) {
     return http.createServer(function (req, res) {
         if (req.method == "POST") {
             var body = "";
             req.on("data", function (data) {
                 body += data.toString();
-            })
-                .on("end", function () {
-                    var key = existingKeys.pop();
-                    db.put(key, body, function (err) {
-                        if (err) {
-                            console.dir(err);
-                        }
-                        res.end("http://" + (process.argv[3] ||  "localhost") + "/" + key);
-                    });
+            }).on("end", function () {
+                db.get(body, function (err, data) {
+                    if(err && err.name == 'NotFoundError') {
+                        var key = existingKeys.pop();
+                        db.batch([{
+                            type: "put",
+                            key: key,
+                            value: body
+                        }, {
+                            type: "put",
+                            key: body,
+                            value: key
+                        }], function (err) {
+                            if (err) {
+                                console.dir(err);
+                            }
+                            res.end(renderUrl(key));
+                        });
+
+                        return;
+                    }
+
+                    if(err) {
+                       console.error(err);
+                       res.statusCode = 500;
+                       return res.end("Internal Server Error");
+                    }
+
+                    if(data) {
+                        return res.end(renderUrl(data));
+                    }
+
                 });
+            });
             return;
         }
 
