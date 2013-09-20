@@ -1,55 +1,73 @@
 "use strict";
 
-var http    = require("http");
+var http = require("http");
 var levelup = require('levelup');
-var db      = levelup('./mydb');
-var Q       = require("q");
-var fs      = require("fs");
+var db = levelup('./mydb');
+var fs = require("fs");
+var keyRange = require("./key-range");
 
-var dbGet = Q.nbind(db.get, db);
-var dbBatch = Q.nbind(db.batch, db);
+var prefix;
 
-var lastKey;
+function prefixOf(key) {
+    return key.substring(0, key.length - 2);
+}
 
-var keyPrefix = function (key) {
-    return key.replace(/\..*/, '');
-};
+function getExistingKeys(prefix, cb) {
+    var keys = [];
+    db.createKeyStream({
+        start: prefix + "00",
+        end: prefix + "zz"
+    }).on("data", function (key) {
+        keys.push(key);
+    }).on("end", function () {
+        cb(keys);
+    }).on("error", function (err) {
+        throw err;
+    });
+}
 
 db.createKeyStream({
-    start: "zzzzzzzz",
-    end: "a",
+    start: "zzzzzzzzzzzzzzzzzzzzz",
+    end: "zz",
     limit: 1
 })
     .on('data', function (key) {
-        lastKey = determineLastKey(key);
-        startUp();
+        startUp(prefixOf(key));
     })
     .on('end', function (data) {
-        if (!lastKey) {
-            lastKey = "zz";
-            startUp();
+        if (!prefix) {
+            startUp("");
         };
     })
     .on("error", function (err) {
-        console.error(err);
-        process.exit();
+        throw err;
     });
 
-var startUp = function () {
-    http.createServer(function (req, res) {
-        console.dir(req);
-        console.dir(req.url);
-        if (req.method == "POST") {
-            return req.pipe(shortenUrl()).pipe(res);
-        }
+var startUp = function (prefix) {
+    getExistingKeys(prefix, function (keys) {
+        var existingKeys = keyRange(prefix, keys);
+        existingKeys.sort(function () { return Math.random() - .5; });
+        http.createServer(function (req, res) {
+            if (req.method == "POST") {
+                var body = "";
+                req.on("data", function (data) {body += data.toString()})
+                    .on("end", function () {
+                        var key = existingKeys.pop();
+                        db.put(key, body, function (err) {
+                            if (err) {
+                                console.dir(err);
+                            }
+                            res.end("http://" + (process.argv[3] || "localhost") + "/" + key);
+                        });
+                    });
+                return;
+            }
 
-        if (req.url == '/') {
-            res.writeHead("Content-type", "text/html");
-            return fs.createReadStream('./index.html').pipe(res);
-        }
+            if (req.url == '/') {
+                res.writeHead("Content-type", "text/html");
+                return fs.createReadStream('./index.html').pipe(res);
+            }
 
-
-
-    }).listen(3000);
-    console.log("Listening on port 3000");
+        }).listen(process.argv[2] || 3000);
+    });
 };
