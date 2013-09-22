@@ -1,6 +1,6 @@
 {
-  "name": "t",
-  "version": "0.0.0",
+  "name": "flip-flap",
+  "version": "0.0.1",
   "description": "an url shortener based on levelDB targeting intranets",
   "main": "index.js",
   "scripts": {
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/thomaspeklak/t.git"
+    "url": "https://github.com/thomaspeklak/flip-flap.git"
   },
   "keywords": [
     "url",
@@ -23,7 +23,6 @@
   "dependencies": {
     "levelup": "~0.12.0",
     "q": "~0.9.6",
-    "leveldown": "~0.6.2"
   },
   "devDependencies": {
     "chai": "~1.7.2",
