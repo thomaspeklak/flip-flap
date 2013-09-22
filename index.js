@@ -20,6 +20,13 @@ function getNonExistingKeys(prefix, cb) {
     });
 }
 
+function startUp(prefix, keys) {
+    keys.sort(function () {
+        return Math.random() - 0.5;
+    });
+    server(prefix, keys, db).listen(process.argv[2] || 3000);
+}
+
 db.get("!!prefix", function (err, prefix) {
     if (err && err.name == "NotFoundError") {
         prefix = "";
@@ -31,12 +38,3 @@ db.get("!!prefix", function (err, prefix) {
         startUp(prefix, keys);
     });
 });
-
-
-
-function startUp(prefix, keys) {
-    keys.sort(function () {
-        return Math.random() - 0.5;
-    });
-    server(prefix, keys, db).listen(process.argv[2] || 3000);
-}
