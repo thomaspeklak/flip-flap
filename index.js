@@ -75,55 +75,52 @@ function addNewKeys(prefix) {
 }
 
 function server(prefix, keys) {
-    return http.createServer(function (req, res) {
-        if (req.method == "POST") {
-            var body = "";
-            req.on("data", function (data) {
-                body += data.toString();
-            }).on("end", function () {
-                db.get(body, function (err, data) {
-                    if (err && err.name == 'NotFoundError') {
-                        var batch = db.batch();
+    function insert(url, cb) {
+        var batch = db.batch();
 
-                        if (keys.length == 0) {
-                            var newKeys = addNewKeys(prefix);
-                            keys = newKeys.keys;
-                            prefix = newKeys.prefix;
-                            batch.put("!!prefix", prefix);
-                        }
+        if (keys.length === 0) {
+            var newKeys = addNewKeys(prefix);
+            keys = newKeys.keys;
+            prefix = newKeys.prefix;
+            batch.put("!!prefix", prefix);
+        }
 
-                        var key = keys.pop();
-                        batch.put(key, body)
-                            .put(body, key)
-                            .write(function (err) {
-                            if (err) {
-                                console.error(err);
-                            }
-                            res.end(renderUrl(key));
-                        });
-
-                        return;
-                    }
-
-                    if (err) {
-                        console.error(err);
-                        return internalServerError(res);
-                    }
-
-                    if (data) {
-                        return res.end(renderUrl(data));
-                    }
-
-                });
+        var key = keys.pop();
+        batch.put(key, url)
+            .put(url, key)
+            .write(function (err) {
+                cb(err, key);
             });
-            return;
-        }
+    }
 
-        if (req.url == "/") {
-            res.writeHead("Content-type", "text/html");
-            return fs.createReadStream("./index.html").pipe(res);
-        }
+    function handlePost(req, res) {
+        var body = "";
+        req.on("data", function (data) {
+            body += data.toString();
+        }).on("end", function () {
+            db.get(body, function (err, data) {
+                if (err && err.name === "NotFoundError") {
+                    return insert(body, function (err, key) {
+                        if (err) console.error(err);
+                        res.end(renderUrl(key));
+                    });
+                }
 
+                if (err) {
+                    console.error(err);
+                    return internalServerError(res);
+                }
+
+                if (data) {
+                    return res.end(renderUrl(data));
+                }
+
+            });
+        });
+
+    }
+
+    function handleGet(req, res) {
         var key = req.url.split("/")[1];
         db.get("!" + key, function (err, data) {
             if (err) {
@@ -137,6 +134,19 @@ function server(prefix, keys) {
 
             redirectTo(res, data);
         });
+    }
+
+    return http.createServer(function (req, res) {
+        if (req.method == "POST") {
+            return handlePost(req, res);
+        }
+
+        if (req.url == "/") {
+            res.writeHead("Content-type", "text/html");
+            return fs.createReadStream("./index.html").pipe(res);
+        }
+
+        handleGet(req, res);
     });
 }
 
