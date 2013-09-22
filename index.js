@@ -3,48 +3,45 @@
 var http = require("http");
 var levelup = require("levelup");
 var db = levelup("./mydb");
-var fs = require("fs");
 var keyRange = require("./key-range");
+var Q = require("q");
+var qGet = Q.denodeify(db.get.bind(db));
 
-var prefix;
-
-function prefixOf(key) {
-    return key.substring(0, key.length - 2);
-}
-
-function getExistingKeys(prefix, cb) {
-    var keys = [];
-    db.createKeyStream({
-        start: prefix + "00",
-        end: prefix + "zz"
-    }).on("data", function (key) {
-        keys.push(key);
-    }).on("end", function () {
-        cb(keys);
-    }).on("error", function (err) {
-        throw err;
-    });
-}
-
-db.createKeyStream({
-    start: "zzzzzzzzzzzzzzzzzzzzz",
-    end: "zz",
-    limit: 1
-})
-    .on("data", function (key) {
-        startUp(prefixOf(key));
-    })
-    .on("end", function () {
-        if (!prefix) {
-            startUp("");
+function getNonExistingKeys(prefix, cb) {
+    var keys = keyRange(prefix);
+    var existingKeys = [];
+    Q.allSettled(keys.map(function (key) {
+        return qGet(key);
+    })).then(function (data)  {
+        for (var i = 0; i < keys.length; i++) {
+            if (data[i].state !== "fulfilled") existingKeys.push(keys[i]);
         }
-    })
-    .on("error", function (err) {
-        throw err;
+        cb(existingKeys);
     });
+}
+
+function increasePrefix(prefix) {
+    if (!prefix) {
+        return "0";
+    } else {
+        return (parseInt(prefix, 36) + 1).toString(36);
+    }
+}
+
+db.get("!!prefix", function (err, prefix) {
+    if (err && err.name == "NotFoundError") {
+        prefix = "";
+    } else if (err) {
+        throw err;
+    }
+
+    getNonExistingKeys(prefix, function (keys) {
+        startUp(prefix, keys);
+    });
+});
 
 function renderUrl(key) {
-    return "http://" + (process.argv[3] ||  "localhost") + "/" + key;
+    return "http://" + (process.argv[3] ||  "localhost") + "/" + key.replace("!", "");
 }
 
 function internalServerError(res) {
@@ -64,7 +61,20 @@ function redirectTo(res, url) {
     res.end();
 }
 
-function server(existingKeys) {
+function addNewKeys(prefix) {
+    if (!prefix) {
+        prefix = "0";
+    } else {
+        prefix = (parseInt(prefix, 36) + 1).toString(36);
+    }
+
+    return {
+        prefix: prefix,
+        keys: keyRange(prefix)
+    };
+}
+
+function server(prefix, keys) {
     return http.createServer(function (req, res) {
         if (req.method == "POST") {
             var body = "";
@@ -73,18 +83,21 @@ function server(existingKeys) {
             }).on("end", function () {
                 db.get(body, function (err, data) {
                     if (err && err.name == 'NotFoundError') {
-                        var key = existingKeys.pop();
-                        db.batch([{
-                            type: "put",
-                            key: key,
-                            value: body
-                        }, {
-                            type: "put",
-                            key: body,
-                            value: key
-                        }], function (err) {
+                        var batch = db.batch();
+
+                        if (keys.length == 0) {
+                            var newKeys = addNewKeys(prefix);
+                            keys = newKeys.keys;
+                            prefix = newKeys.prefix;
+                            batch.put("!!prefix", prefix);
+                        }
+
+                        var key = keys.pop();
+                        batch.put(key, body)
+                            .put(body, key)
+                            .write(function (err) {
                             if (err) {
-                                console.dir(err);
+                                console.error(err);
                             }
                             res.end(renderUrl(key));
                         });
@@ -112,7 +125,7 @@ function server(existingKeys) {
         }
 
         var key = req.url.split("/")[1];
-        db.get(key, function (err, data) {
+        db.get("!" + key, function (err, data) {
             if (err) {
                 if (err.name == "NotFoundError") {
                     return notFound(res);
@@ -127,12 +140,9 @@ function server(existingKeys) {
     });
 }
 
-function startUp(prefix) {
-    getExistingKeys(prefix, function (keys) {
-        var existingKeys = keyRange(prefix, keys);
-        existingKeys.sort(function () {
-            return Math.random() - 0.5;
-        });
-        server(existingKeys).listen(process.argv[2] || 3000);
+function startUp(prefix, keys) {
+    keys.sort(function () {
+        return Math.random() - 0.5;
     });
+    server(prefix, keys).listen(process.argv[2] || 3000);
 }
