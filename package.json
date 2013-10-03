@@ -18,7 +18,7 @@
   "author": "Thomas Peklak <thomas.peklak@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/thomaspeklak/express-resizer/issues"
+    "url": "https://github.com/thomaspeklak/flip-flap/issues"
   },
   "dependencies": {
     "levelup": "~0.12.0",
