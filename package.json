@@ -4,7 +4,7 @@
   "description": "an url shortener based on levelDB targeting intranets",
   "main": "index.js",
   "scripts": {
-    "start": "node .",
+    "start": "node . 3000 localhost:3000",
     "test": "node_modules/mocha/bin/mocha"
   },
   "repository": {
