@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+        <title>Flip Flap</title>
+    </head>
+    <body>
+        <script type="text/javascript">
+            var ORIGIN = location.protocol + "//" + location.host;
+            window.parent.postMessage("ready", "*");
+            document.body.classList.add('ready');
+            window.addEventListener('message', function(e) {
+                var data = e.data;
+                if(data.link) sendRequest(data.link);
+            }, false);
+
+            function sendRequest(link) {
+                var request = new XMLHttpRequest();
+                request.open("POST", "/", true);
+                request.setRequestHeader("Content-type","application/x-www-form-urlencoded");
+                request.send(link);
+                request.addEventListener("load", function(){
+                    if (request.status === 200) {
+                        return document.body.innerHTML = request.response;
+                    }
+                    if(request.status === 400) {
+                        return;
+                    }
+                    if (request.status > 400) {
+                        alert('The requested resource was not found.');
+                    }
+                });
+                request.addEventListener("error", function(){
+                    alert('There was an internal error.');
+                });
+            }
+        </script>
+    </body>
+</html>

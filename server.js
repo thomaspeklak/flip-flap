@@ -3,6 +3,11 @@ var http = require("http");
 var fs = require("fs");
 var increasePrefix = require("./increase-prefix");
 var keyRange = require("./key-range");
+var ecstatic = require("ecstatic");
+
+function trimTrailingSlash (text) {
+    return text.replace(/\/$/, "");
+}
 
 function renderUrl(key) {
     return "http://" + (process.argv[3] ||  "localhost") + "/" + key.replace("!", "");
@@ -50,10 +55,10 @@ module.exports = function server(prefix, keys, db) {
 
         var key = keys.pop();
         batch.put(key, url)
-            .put(url, key)
-            .write(function (err) {
-                cb(err, key);
-            });
+        .put(url, key)
+        .write(function (err) {
+            cb(err, key);
+        });
     }
 
     function handlePost(req, res) {
@@ -61,10 +66,12 @@ module.exports = function server(prefix, keys, db) {
         req.on("data", function (data) {
             body += data.toString();
         }).on("end", function () {
+            body = trimTrailingSlash(body);
             db.get(body, function (err, data) {
                 if (err && err.name === "NotFoundError") {
                     return insert(body, function (err, key) {
                         if (err) console.error(err);
+                        res.statusCode = 200;
                         res.end(renderUrl(key));
                     });
                 }
@@ -75,6 +82,7 @@ module.exports = function server(prefix, keys, db) {
                 }
 
                 if (data) {
+                    res.statusCode = 200;
                     return res.end(renderUrl(data));
                 }
 
@@ -99,7 +107,7 @@ module.exports = function server(prefix, keys, db) {
         });
     }
 
-    return http.createServer(function (req, res) {
+    function handleRequest(req, res) {
         if (req.method == "POST") {
             return handlePost(req, res);
         }
@@ -110,6 +118,20 @@ module.exports = function server(prefix, keys, db) {
         }
 
         handleGet(req, res);
-    });
-}
+    }
 
+    var staticd = ecstatic({
+        root: __dirname + "/public",
+        handleError: false,
+        cache: 3600,
+        showDir: false,
+        autoIndex: false,
+        defaultExt: "html"
+    });
+
+    return http.createServer(function (req, res) {
+        staticd(req, res, function () {
+            handleRequest(req, res);
+        })
+    });
+};

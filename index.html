@@ -1,11 +1,15 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <title>T</title>
+        <title>Flip Flap</title>
     </head>
     <body>
         <h1>Shorten your URLs</h1>
-        <p>Drag this bookmarklet to your bookmarks bar</p>
+        <p>Drag this <a id="bookmarklet" href="javascript:(function(){var ORIGIN='%DOMAIN%';var iframe=document.createElement('iframe');iframe.id='thingys-submitter';iframe.src=ORIGIN+'/poster';iframe.width=500;iframe.height=500;var s=iframe.style;s.position='fixed';s.top=0;s.left=0;s.zIndex=6e4;s.border=0;document.body.appendChild(iframe);window.addEventListener('message',function(e){if(e.data==='ready'){e.source.postMessage({link:document.location.href},ORIGIN)}if(e.data==='close'){iframe.parentNode.removeChild(iframe);}},false);})();">bookmarklet</a> to your bookmarks bar</p>
+        <script type="text/javascript">
+            var bookmarklet = document.getElementById("bookmarklet");
+            bookmarklet.href = bookmarklet.href.replace("%DOMAIN%", location.protocol + "//" + location.host);
+        </script>
     </body>
 </html>
 
