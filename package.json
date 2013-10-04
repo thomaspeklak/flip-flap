@@ -23,7 +23,8 @@
   "dependencies": {
     "levelup": "~0.12.0",
     "q": "~0.9.6",
-    "ecstatic": "~0.4.8"
+    "ecstatic": "~0.4.8",
+    "qrcode": "~0.2.8"
   },
   "devDependencies": {
     "chai": "~1.7.2",

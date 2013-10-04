@@ -4,6 +4,7 @@ var fs = require("fs");
 var increasePrefix = require("./increase-prefix");
 var keyRange = require("./key-range");
 var ecstatic = require("ecstatic");
+var generateQrCode = require("./generate-qr-code");
 
 function trimTrailingSlash (text) {
     return text.replace(/\/$/, "");
@@ -115,6 +116,17 @@ module.exports = function server(prefix, keys, db) {
         if (req.url == "/") {
             res.writeHead("Content-type", "text/html");
             return fs.createReadStream("./index.html").pipe(res);
+        }
+
+        if (req.url.indexOf("/qr-codes/") === 0) {
+            generateQrCode(req.url, function (err, pngStream) {
+                if (err) {
+                    console.error(err);
+                    return internalServerError(res);
+                }
+
+                pngStream.pipe(res);
+            });
         }
 
         handleGet(req, res);

@@ -29,3 +29,4 @@ uploads
 
 public/javascripts/app.js
 mydb
+public/qr-codes/*.png
