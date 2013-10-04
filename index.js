@@ -24,7 +24,8 @@ function startUp(prefix, keys) {
     keys.sort(function () {
         return Math.random() - 0.5;
     });
-    servers = server(prefix, keys, db).listen(process.argv[2] || 3000);
+    server(prefix, keys, db).listen(process.argv[2] || 3000);
+    console.log("server started on " + (process.argv[2] || 3000));
 }
 
 db.get("!!prefix", function (err, prefix) {

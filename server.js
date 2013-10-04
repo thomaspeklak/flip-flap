@@ -144,6 +144,6 @@ module.exports = function server(prefix, keys, db) {
     return http.createServer(function (req, res) {
         staticd(req, res, function () {
             handleRequest(req, res);
-        })
+        });
     });
 };
