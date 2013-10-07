@@ -114,7 +114,7 @@ module.exports = function server(prefix, keys, db) {
         }
 
         if (req.url == "/") {
-            res.writeHead("Content-type", "text/html");
+            res.writeHead(200, {"Content-type": "text/html"});
             return fs.createReadStream("./index.html").pipe(res);
         }
 
