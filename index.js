@@ -1,6 +1,6 @@
 "use strict";
 
-var levelup = require("levelup");
+var levelup = require("level");
 var db = levelup("./mydb");
 var Q = require("q");
 var keyRange = require("./key-range");
