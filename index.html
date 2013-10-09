@@ -37,6 +37,9 @@
 
             section {
                 padding: 0 10px 0 150px;
+            }
+
+            section:first-child {
                 margin-top: -30px;
             }
         </style>
@@ -48,6 +51,12 @@
         <section>
             <p>Shorten your URLs</p>
             <p>Drag this bookmarklet &laquo;<a id="bookmarklet" href="javascript:(function(){var d=document;d.styleSheets[0].insertRule('body>*:not(#thingys-submitter){-webkit-filter:blur(5px)}', 0);var ORIGIN='%DOMAIN%';var iframe=d.createElement('iframe');iframe.id='thingys-submitter';iframe.src=ORIGIN+'/poster';iframe.width=500;iframe.height=500;s=iframe.style;s.position='fixed';s.top=0;s.left=0;s.bottom=0;s.right=0;s.minWidth='100%';s.minHeight='100%';s.zIndex=6e4;s.border=0;d.body.appendChild(iframe);window.addEventListener('message',function(e){if(e.data==='ready'){e.source.postMessage({link:document.location.href},ORIGIN)}if(e.data==='close'){iframe.parentNode.removeChild(iframe);document.styleSheets[0].deleteRule(0);}},false);})();">flip-flap</a>&raquo; to your bookmarks bar</p>
+        </section>
+        <section>
+            <p>Or paste your Url here:</p>
+            <label for="url">Url</label>
+            <input type="url" name="url" id="url" placeholder="paste your url here">
+            <input type="submit" value="shorten!" onclick="javascript:(function(){var d=document;d.styleSheets[0].insertRule('body>*:not(#thingys-submitter){-webkit-filter:blur(5px)}', 0);var ORIGIN=location.protocol + '//' + location.host;var iframe=d.createElement('iframe');iframe.id='thingys-submitter';iframe.src=ORIGIN+'/poster';iframe.width=500;iframe.height=500;s=iframe.style;s.position='fixed';s.top=0;s.left=0;s.bottom=0;s.right=0;s.minWidth='100%';s.minHeight='100%';s.zIndex=6e4;s.border=0;d.body.appendChild(iframe);window.addEventListener('message',function(e){if(e.data==='ready'){e.source.postMessage({link:document.getElementById('url').value},ORIGIN)}if(e.data==='close'){iframe.parentNode.removeChild(iframe);document.styleSheets[0].deleteRule(0);}},false);})();">
         </section>
         <script type="text/javascript">
             var bookmarklet = document.getElementById("bookmarklet");
